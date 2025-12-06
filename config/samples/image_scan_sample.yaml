@@ -1,0 +1,124 @@
+# Example: Scan popular open source images for vulnerabilities
+---
+apiVersion: yara.security.io/v1alpha1
+kind: YaraScan
+metadata:
+  name: scan-nginx-latest
+  labels:
+    type: image-scan
+spec:
+  target:
+    type: image
+    value: nginx:latest
+    scanLayers: true
+  timeout: 600
+  retainResults: 72
+---
+apiVersion: yara.security.io/v1alpha1
+kind: YaraScan
+metadata:
+  name: scan-alpine-latest
+  labels:
+    type: image-scan
+spec:
+  target:
+    type: image
+    value: alpine:latest
+    scanLayers: true
+  timeout: 300
+---
+apiVersion: yara.security.io/v1alpha1
+kind: YaraScan
+metadata:
+  name: scan-python-slim
+  labels:
+    type: image-scan
+spec:
+  target:
+    type: image
+    value: python:3.11-slim
+    scanLayers: true
+  timeout: 600
+---
+apiVersion: yara.security.io/v1alpha1
+kind: YaraScan
+metadata:
+  name: scan-node-alpine
+  labels:
+    type: image-scan
+spec:
+  target:
+    type: image
+    value: node:20-alpine
+    scanLayers: true
+  timeout: 600
+---
+apiVersion: yara.security.io/v1alpha1
+kind: YaraScan
+metadata:
+  name: scan-redis
+  labels:
+    type: image-scan
+spec:
+  target:
+    type: image
+    value: redis:7-alpine
+    scanLayers: true
+  timeout: 300
+---
+# Scan with custom inline rules
+apiVersion: yara.security.io/v1alpha1
+kind: YaraScan
+metadata:
+  name: scan-custom-image
+  labels:
+    type: image-scan
+spec:
+  target:
+    type: image
+    value: ghcr.io/your-org/your-image:latest
+    scanLayers: true
+  inlineRules:
+    - name: custom_check
+      content: |
+        rule custom_check {
+            strings:
+                $debug = "DEBUG=true" nocase
+                $dev_mode = "development" nocase
+            condition:
+                any of them
+        }
+  ruleNames:
+    - detect-cryptominer
+    - detect-webshell
+    - detect-hardcoded-secrets
+  timeout: 900
+---
+# Scan from GitHub Container Registry
+apiVersion: yara.security.io/v1alpha1
+kind: YaraScan
+metadata:
+  name: scan-ghcr-image
+  labels:
+    type: image-scan
+spec:
+  target:
+    type: image
+    value: ghcr.io/actions/runner:latest
+    scanLayers: true
+  timeout: 600
+---
+# Scan from Quay.io
+apiVersion: yara.security.io/v1alpha1
+kind: YaraScan
+metadata:
+  name: scan-quay-image
+  labels:
+    type: image-scan
+spec:
+  target:
+    type: image
+    value: quay.io/prometheus/prometheus:latest
+    scanLayers: true
+  timeout: 600
+

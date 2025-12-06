@@ -1,0 +1,46 @@
+apiVersion: yara.security.io/v1alpha1
+kind: YaraScan
+metadata:
+  name: scan-configmap-data
+spec:
+  target:
+    type: configmap
+    value: my-config
+    key: config.yaml
+  timeout: 300
+  retainResults: 24
+---
+apiVersion: yara.security.io/v1alpha1
+kind: YaraScan
+metadata:
+  name: scan-inline-data
+spec:
+  target:
+    type: data
+    # Base64 encoded test data
+    value: "dGVzdCBkYXRhIHdpdGggbWFsd2FyZSBhbmQgdHJvamFuIHN0cmluZ3M="
+  inlineRules:
+    - name: quick_test
+      content: |
+        rule quick_test {
+            strings:
+                $a = "malware"
+                $b = "trojan"
+            condition:
+                any of them
+        }
+  timeout: 60
+---
+apiVersion: yara.security.io/v1alpha1
+kind: YaraScan
+metadata:
+  name: scan-url-target
+spec:
+  target:
+    type: url
+    value: "https://example.com/file.bin"
+  ruleNames:
+    - detect_malicious_strings
+    - detect_pe_file
+  timeout: 120
+

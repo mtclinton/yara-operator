@@ -1,0 +1,106 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binaries and coverage
+*.test
+*.out
+cover.out
+coverage.html
+
+# Go
+vendor/
+go.work
+go.work.sum
+
+# IDE and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+out/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.log
+*.bak
+
+# Kubernetes
+*.kubeconfig
+kubeconfig
+.kube/
+
+# Helm
+*.tgz
+charts/*.lock
+.helmignore
+
+# Docker
+.docker/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.env
+
+# Secrets (never commit these)
+secrets/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Debug files
+debug
+*.debug
+*.dSYM/
+
+# Profiling
+*.prof
+*.pprof
+cpu.out
+mem.out
+
+# Generated files
+zz_generated.*.go
+*_generated.go
+
+# Controller-gen output
+config/crd/bases/*.bak
+
+# Test artifacts
+testbin/
+.envtest/
+
+# Local development
+.local/
+local/
+scratch/

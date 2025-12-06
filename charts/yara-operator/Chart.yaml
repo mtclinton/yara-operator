@@ -1,0 +1,19 @@
+apiVersion: v2
+name: yara-operator
+description: A Kubernetes operator for running YARA scans
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - yara
+  - security
+  - malware
+  - kubernetes
+  - operator
+home: https://github.com/yara-operator/yara-operator
+sources:
+  - https://github.com/yara-operator/yara-operator
+maintainers:
+  - name: YARA Operator Team
+    email: maintainers@yara-operator.io
+

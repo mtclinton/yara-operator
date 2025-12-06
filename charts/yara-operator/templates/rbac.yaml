@@ -1,0 +1,160 @@
+{{- if .Values.rbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "yara-operator.fullname" . }}-manager
+  labels:
+    {{- include "yara-operator.labels" . | nindent 4 }}
+rules:
+  # YaraRule permissions
+  - apiGroups:
+      - yara.security.io
+    resources:
+      - yararules
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - yara.security.io
+    resources:
+      - yararules/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - yara.security.io
+    resources:
+      - yararules/finalizers
+    verbs:
+      - update
+  
+  # YaraScan permissions
+  - apiGroups:
+      - yara.security.io
+    resources:
+      - yarascans
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - yara.security.io
+    resources:
+      - yarascans/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - yara.security.io
+    resources:
+      - yarascans/finalizers
+    verbs:
+      - update
+  
+  # Core resource permissions for scanning ConfigMaps and Secrets
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+  
+  # Events for logging
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "yara-operator.fullname" . }}-manager
+  labels:
+    {{- include "yara-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "yara-operator.fullname" . }}-manager
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "yara-operator.serviceAccountName" . }}
+    namespace: {{ .Values.namespace }}
+
+---
+# Leader election role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "yara-operator.fullname" . }}-leader-election
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "yara-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "yara-operator.fullname" . }}-leader-election
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "yara-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "yara-operator.fullname" . }}-leader-election
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "yara-operator.serviceAccountName" . }}
+    namespace: {{ .Values.namespace }}
+{{- end }}
+

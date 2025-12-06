@@ -1,0 +1,111 @@
+# Default values for yara-operator
+# This is a YAML-formatted file.
+
+# Operator configuration
+operator:
+  replicaCount: 1
+  
+  image:
+    repository: ghcr.io/yara-operator/yara-operator
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  
+  # Leader election for HA deployments
+  leaderElection:
+    enabled: true
+  
+  # Metrics configuration
+  metrics:
+    enabled: true
+    port: 8080
+  
+  # Health probe configuration
+  health:
+    port: 8081
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# API Server configuration
+api:
+  enabled: true
+  replicaCount: 2
+  
+  image:
+    repository: ghcr.io/yara-operator/yara-api
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  
+  service:
+    type: ClusterIP
+    port: 8090
+  
+  # Ingress configuration for external access
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+      nginx.ingress.kubernetes.io/enable-cors: "true"
+    hosts:
+      - host: yara-api.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: yara-api-tls
+        hosts:
+          - yara-api.example.com
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ServiceAccount configuration
+serviceAccount:
+  create: true
+  name: yara-operator
+  annotations: {}
+
+# RBAC configuration
+rbac:
+  create: true
+
+# Namespace for YARA resources
+namespace: yara-system
+
+# Image pull secrets (if using private registry)
+imagePullSecrets: []
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  fsGroup: 65532
+
+# Pod security context
+podSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+

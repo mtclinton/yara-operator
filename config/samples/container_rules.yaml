@@ -1,0 +1,354 @@
+---
+# Container Security YARA Rules for scanning open source images
+apiVersion: yara.security.io/v1alpha1
+kind: YaraRule
+metadata:
+  name: detect-cryptominer
+  labels:
+    category: malware
+    target: container
+    severity: critical
+spec:
+  name: detect_cryptominer
+  description: Detects cryptocurrency mining software in container images
+  tags:
+    - malware
+    - cryptominer
+    - container
+  enabled: true
+  content: |
+    rule detect_cryptominer {
+        meta:
+            description = "Detects cryptocurrency miners"
+            author = "YARA Operator"
+            severity = "critical"
+            category = "malware"
+        
+        strings:
+            $xmrig1 = "xmrig" nocase
+            $xmrig2 = "randomx" nocase
+            $pool1 = "stratum+tcp://" nocase
+            $pool2 = "stratum+ssl://" nocase
+            $pool3 = "pool.minexmr" nocase
+            $pool4 = "xmrpool" nocase
+            $pool5 = "moneroocean" nocase
+            $miner1 = "cpuminer" nocase
+            $miner2 = "cgminer" nocase
+            $miner3 = "bfgminer" nocase
+            $wallet = /[48][0-9AB][1-9A-HJ-NP-Za-km-z]{93}/
+        
+        condition:
+            any of them
+    }
+---
+apiVersion: yara.security.io/v1alpha1
+kind: YaraRule
+metadata:
+  name: detect-webshell
+  labels:
+    category: malware
+    target: container
+    severity: critical
+spec:
+  name: detect_webshell
+  description: Detects web shells commonly found in compromised containers
+  tags:
+    - malware
+    - webshell
+    - backdoor
+  enabled: true
+  content: |
+    rule detect_webshell {
+        meta:
+            description = "Detects common web shells"
+            author = "YARA Operator"
+            severity = "critical"
+        
+        strings:
+            $c99 = "c99shell" nocase
+            $r57 = "r57shell" nocase
+            $wso = "wso shell" nocase
+            $b374k = "b374k" nocase
+            $weevely = "weevely" nocase
+            $phpspy = "phpspy" nocase
+            $eval1 = "eval($_POST" nocase
+            $eval2 = "eval($_GET" nocase
+            $eval3 = "eval($_REQUEST" nocase
+            $eval4 = "eval(base64_decode" nocase
+            $shell1 = "shell_exec(" nocase
+            $shell2 = "passthru(" nocase
+            $shell3 = "system($_" nocase
+            $assert1 = "assert($_POST" nocase
+            $assert2 = "assert($_GET" nocase
+        
+        condition:
+            any of them
+    }
+---
+apiVersion: yara.security.io/v1alpha1
+kind: YaraRule
+metadata:
+  name: detect-reverse-shell
+  labels:
+    category: malware
+    target: container
+    severity: critical
+spec:
+  name: detect_reverse_shell
+  description: Detects reverse shell patterns in container images
+  tags:
+    - malware
+    - backdoor
+    - reverse-shell
+  enabled: true
+  content: |
+    rule detect_reverse_shell {
+        meta:
+            description = "Detects reverse shell patterns"
+            author = "YARA Operator"
+            severity = "critical"
+        
+        strings:
+            $bash_i = "bash -i >& /dev/tcp/" nocase
+            $nc_e = "nc -e /bin/" nocase
+            $ncat = "ncat -e /bin/" nocase
+            $python_rev = "python -c 'import socket,subprocess,os" nocase
+            $perl_rev = "perl -e 'use Socket" nocase
+            $ruby_rev = "ruby -rsocket -e" nocase
+            $php_rev = "php -r '$sock=fsockopen" nocase
+            $powershell = "powershell -nop -c" nocase
+            $socat = "socat exec:'bash" nocase
+            $mkfifo = "mkfifo /tmp/f;cat /tmp/f|" nocase
+        
+        condition:
+            any of them
+    }
+---
+apiVersion: yara.security.io/v1alpha1
+kind: YaraRule
+metadata:
+  name: detect-container-escape
+  labels:
+    category: security
+    target: container
+    severity: critical
+spec:
+  name: detect_container_escape
+  description: Detects container escape attempt patterns
+  tags:
+    - security
+    - container-escape
+    - privilege-escalation
+  enabled: true
+  content: |
+    rule detect_container_escape {
+        meta:
+            description = "Detects container escape patterns"
+            author = "YARA Operator"
+            severity = "critical"
+        
+        strings:
+            $docker_sock = "/var/run/docker.sock"
+            $cgroup_escape = "/sys/fs/cgroup"
+            $release_agent = "release_agent"
+            $notify_on_release = "notify_on_release"
+            $nsenter = "nsenter -t 1" nocase
+            $chroot = "chroot /host" nocase
+            $mount_host = "mount /dev/" nocase
+            $ptrace = "SYS_PTRACE" nocase
+            $cap_admin = "CAP_SYS_ADMIN" nocase
+            $privileged = "--privileged" nocase
+        
+        condition:
+            any of them
+    }
+---
+apiVersion: yara.security.io/v1alpha1
+kind: YaraRule
+metadata:
+  name: detect-suspicious-commands
+  labels:
+    category: security
+    target: container
+    severity: high
+spec:
+  name: detect_suspicious_commands
+  description: Detects suspicious commands in container entrypoints or scripts
+  tags:
+    - security
+    - suspicious
+    - commands
+  enabled: true
+  content: |
+    rule detect_suspicious_commands {
+        meta:
+            description = "Detects suspicious commands"
+            author = "YARA Operator"
+            severity = "high"
+        
+        strings:
+            $curl_exec = /curl\s+.{0,50}\|\s*(ba)?sh/ nocase
+            $wget_exec = /wget\s+.{0,50}\|\s*(ba)?sh/ nocase
+            $curl_pipe = "curl -s" nocase
+            $chmod_x = "chmod +x" nocase
+            $base64_d = "base64 -d" nocase
+            $hidden_file = /\/\.[a-z]+\// nocase
+            $tmp_exec = /\/tmp\/[a-z0-9]+\s/ nocase
+            $dev_shm = "/dev/shm/" nocase
+            $proc_write = /echo\s+.{0,20}>\s*\/proc/ nocase
+            $crontab_add = "crontab -" nocase
+            $disable_history = "HISTFILE=/dev/null" nocase
+            $unset_history = "unset HISTFILE" nocase
+        
+        condition:
+            any of them
+    }
+---
+apiVersion: yara.security.io/v1alpha1
+kind: YaraRule
+metadata:
+  name: detect-hardcoded-secrets
+  labels:
+    category: secrets
+    target: container
+    severity: high
+spec:
+  name: detect_hardcoded_secrets
+  description: Detects hardcoded secrets and credentials in container images
+  tags:
+    - secrets
+    - credentials
+    - security
+  enabled: true
+  content: |
+    rule detect_hardcoded_secrets {
+        meta:
+            description = "Detects hardcoded secrets"
+            author = "YARA Operator"
+            severity = "high"
+        
+        strings:
+            $aws_key = /AKIA[0-9A-Z]{16}/
+            $aws_secret = /(?i)aws_secret_access_key\s*[=:]\s*['"]?[A-Za-z0-9\/+=]{40}/
+            $github_token = /ghp_[a-zA-Z0-9]{36}/
+            $github_oauth = /gho_[a-zA-Z0-9]{36}/
+            $private_key = "-----BEGIN RSA PRIVATE KEY-----"
+            $private_key2 = "-----BEGIN OPENSSH PRIVATE KEY-----"
+            $private_key3 = "-----BEGIN EC PRIVATE KEY-----"
+            $google_api = /AIza[0-9A-Za-z\-_]{35}/
+            $slack_token = /xox[baprs]-[0-9]{10,13}-[0-9]{10,13}-[a-zA-Z0-9]{24}/
+            $stripe_key = /(?i)(sk|pk)_(live|test)_[0-9a-zA-Z]{24,}/
+            $jwt = /eyJ[A-Za-z0-9-_]+\.eyJ[A-Za-z0-9-_]+\.[A-Za-z0-9-_.+\/=]+/
+            $password = /(?i)(password|passwd|pwd)\s*[=:]\s*['"]?[^\s'"]{8,}/
+        
+        condition:
+            any of them
+    }
+---
+apiVersion: yara.security.io/v1alpha1
+kind: YaraRule
+metadata:
+  name: detect-vulnerable-packages
+  labels:
+    category: vulnerability
+    target: container
+    severity: critical
+spec:
+  name: detect_vulnerable_packages
+  description: Detects known vulnerable packages in container images
+  tags:
+    - vulnerability
+    - cve
+    - packages
+  enabled: true
+  content: |
+    rule detect_vulnerable_packages {
+        meta:
+            description = "Detects known vulnerable package versions"
+            author = "YARA Operator"
+            severity = "critical"
+        
+        strings:
+            // Log4j (CVE-2021-44228, CVE-2021-45046)
+            $log4j_vuln = /log4j-core-2\.(0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15)\.[0-9]+\.jar/
+            
+            // Spring4Shell (CVE-2022-22965)
+            $spring_vuln = /spring-beans-[45]\.[0-2]\.[0-9]+\.jar/
+            
+            // Apache Struts (CVE-2017-5638)
+            $struts_vuln = /struts2-core-2\.(3\.[0-9]|5\.[0-9]|5\.1[0-2])\.jar/
+            
+            // Text4Shell (CVE-2022-42889)
+            $text4shell = /commons-text-1\.[5-9]\.jar/
+            
+            // Jackson databind RCE
+            $jackson_vuln = /jackson-databind-2\.[0-8]\.[0-9]+\.jar/
+            
+            // Vulnerable OpenSSL
+            $openssl_vuln = /libssl\.so\.1\.0\.[01]/
+            
+            // Vulnerable bash (Shellshock)
+            $bash_vuln = /bash-[1-3]\.[0-2]|bash-4\.[0-2]/
+        
+        condition:
+            any of them
+    }
+---
+apiVersion: yara.security.io/v1alpha1
+kind: YaraRule
+metadata:
+  name: detect-supply-chain-attack
+  labels:
+    category: security
+    target: container
+    severity: critical
+spec:
+  name: detect_supply_chain_attack
+  description: Detects indicators of supply chain attacks in container images
+  tags:
+    - security
+    - supply-chain
+    - malware
+  enabled: true
+  content: |
+    rule detect_supply_chain_attack {
+        meta:
+            description = "Detects supply chain attack indicators"
+            author = "YARA Operator"
+            severity = "critical"
+        
+        strings:
+            // Codecov attack pattern
+            $codecov = "codecov" nocase
+            
+            // Event-stream attack pattern
+            $flatmap = "flatmap-stream" nocase
+            
+            // UA-Parser-JS attack
+            $ua_parser = "ua-parser-js" nocase
+            
+            // Suspicious npm install scripts
+            $npm_preinstall = "preinstall" nocase
+            $npm_postinstall = "postinstall" nocase
+            
+            // Suspicious pip install
+            $pip_setup = "setup.py" nocase
+            
+            // Typosquatting indicators (common package name variations)
+            $typo1 = "lodas" nocase  // lodash typo
+            $typo2 = "reqeusts" nocase  // requests typo
+            $typo3 = "djanga" nocase  // django typo
+            
+            // Suspicious download during build
+            $curl_build = /RUN\s+curl\s+.{0,100}(sh|bash|install)/
+            $wget_build = /RUN\s+wget\s+.{0,100}(sh|bash|install)/
+            
+            // Obfuscated code indicators
+            $obf1 = "eval(atob(" nocase
+            $obf2 = "eval(Buffer.from(" nocase
+            $obf3 = "exec(base64" nocase
+        
+        condition:
+            any of them
+    }
+

@@ -1,0 +1,85 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: yararules.yara.security.io
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+spec:
+  group: yara.security.io
+  names:
+    kind: YaraRule
+    listKind: YaraRuleList
+    plural: yararules
+    singular: yararule
+    shortNames:
+      - yr
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Status
+          type: string
+          jsonPath: .status.phase
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          type: object
+          description: YaraRule is the Schema for the yararules API
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              description: YaraRuleSpec defines the desired state of YaraRule
+              required:
+                - name
+                - content
+              properties:
+                name:
+                  type: string
+                  description: Name is the name of the YARA rule
+                content:
+                  type: string
+                  description: Content is the raw YARA rule content
+                description:
+                  type: string
+                  description: Description provides additional context about the rule
+                tags:
+                  type: array
+                  description: Tags are labels for categorizing rules
+                  items:
+                    type: string
+                enabled:
+                  type: boolean
+                  description: Enabled determines if the rule should be used in scans
+                  default: true
+            status:
+              type: object
+              description: YaraRuleStatus defines the observed state of YaraRule
+              properties:
+                phase:
+                  type: string
+                  description: Phase represents the current phase of the rule
+                  enum:
+                    - Pending
+                    - Valid
+                    - Invalid
+                message:
+                  type: string
+                  description: Message provides additional information about the status
+                lastValidated:
+                  type: string
+                  format: date-time
+                  description: LastValidated is the timestamp of the last validation
+

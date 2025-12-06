@@ -1,0 +1,198 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: yarascans.yara.security.io
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+spec:
+  group: yara.security.io
+  names:
+    kind: YaraScan
+    listKind: YaraScanList
+    plural: yarascans
+    singular: yarascan
+    shortNames:
+      - ys
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Status
+          type: string
+          jsonPath: .status.phase
+        - name: Matches
+          type: integer
+          jsonPath: .status.matchCount
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          type: object
+          description: YaraScan is the Schema for the yarascans API
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              description: YaraScanSpec defines the desired state of YaraScan
+              required:
+                - target
+              properties:
+                target:
+                  type: object
+                  description: Target specifies what to scan
+                  required:
+                    - type
+                    - value
+                  properties:
+                    type:
+                      type: string
+                      description: Type is the type of target
+                      enum:
+                        - file
+                        - url
+                        - data
+                        - configmap
+                        - secret
+                        - container
+                    value:
+                      type: string
+                      description: Value is the target value
+                    namespace:
+                      type: string
+                      description: Namespace for configmap/secret targets
+                    key:
+                      type: string
+                      description: Key for configmap/secret targets
+                ruleSelector:
+                  type: object
+                  description: RuleSelector selects which YaraRules to use
+                  x-kubernetes-map-type: atomic
+                  properties:
+                    matchLabels:
+                      type: object
+                      additionalProperties:
+                        type: string
+                    matchExpressions:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          key:
+                            type: string
+                          operator:
+                            type: string
+                          values:
+                            type: array
+                            items:
+                              type: string
+                ruleNames:
+                  type: array
+                  description: RuleNames explicitly specifies rule names to use
+                  items:
+                    type: string
+                inlineRules:
+                  type: array
+                  description: InlineRules allows specifying rules directly in the scan
+                  items:
+                    type: object
+                    required:
+                      - name
+                      - content
+                    properties:
+                      name:
+                        type: string
+                        description: Name of the inline rule
+                      content:
+                        type: string
+                        description: Content of the YARA rule
+                timeout:
+                  type: integer
+                  description: Timeout is the maximum duration for the scan in seconds
+                  default: 300
+                retainResults:
+                  type: integer
+                  description: RetainResults specifies how long to retain results (in hours)
+                  default: 24
+            status:
+              type: object
+              description: YaraScanStatus defines the observed state of YaraScan
+              properties:
+                phase:
+                  type: string
+                  description: Phase represents the current phase of the scan
+                  enum:
+                    - Pending
+                    - Running
+                    - Completed
+                    - Failed
+                startTime:
+                  type: string
+                  format: date-time
+                  description: StartTime is when the scan started
+                completionTime:
+                  type: string
+                  format: date-time
+                  description: CompletionTime is when the scan completed
+                matchCount:
+                  type: integer
+                  description: MatchCount is the number of rule matches found
+                matches:
+                  type: array
+                  description: Matches contains the detailed match information
+                  items:
+                    type: object
+                    properties:
+                      rule:
+                        type: string
+                        description: Rule is the name of the matched rule
+                      namespace:
+                        type: string
+                        description: Namespace is the YARA namespace of the rule
+                      tags:
+                        type: array
+                        description: Tags are the tags associated with the matched rule
+                        items:
+                          type: string
+                      strings:
+                        type: array
+                        description: Strings contains the matched strings
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              description: Name is the identifier of the string
+                            offset:
+                              type: integer
+                              format: int64
+                              description: Offset is the position in the data
+                            length:
+                              type: integer
+                              description: Length is the length of the matched data
+                            data:
+                              type: string
+                              description: Data is a hex representation of matched bytes
+                      meta:
+                        type: object
+                        description: Meta contains rule metadata
+                        additionalProperties:
+                          type: string
+                message:
+                  type: string
+                  description: Message provides additional information about the status
+                scannedBytes:
+                  type: integer
+                  format: int64
+                  description: ScannedBytes is the size of scanned data
+

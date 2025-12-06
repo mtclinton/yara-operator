@@ -1,0 +1,93 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: yara-operator-manager-role
+rules:
+  # YaraRule permissions
+  - apiGroups:
+      - yara.security.io
+    resources:
+      - yararules
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - yara.security.io
+    resources:
+      - yararules/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - yara.security.io
+    resources:
+      - yararules/finalizers
+    verbs:
+      - update
+  
+  # YaraScan permissions
+  - apiGroups:
+      - yara.security.io
+    resources:
+      - yarascans
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - yara.security.io
+    resources:
+      - yarascans/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - yara.security.io
+    resources:
+      - yarascans/finalizers
+    verbs:
+      - update
+  
+  # Core resource permissions
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+  
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: yara-operator-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: yara-operator-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: yara-operator
+    namespace: yara-system
+

@@ -1,0 +1,96 @@
+apiVersion: yara.security.io/v1alpha1
+kind: YaraRule
+metadata:
+  name: detect-malicious-strings
+  labels:
+    category: malware
+    severity: high
+spec:
+  name: detect_malicious_strings
+  description: Detects common malicious string patterns
+  tags:
+    - malware
+    - strings
+    - generic
+  enabled: true
+  content: |
+    rule detect_malicious_strings {
+        meta:
+            description = "Detects common malicious patterns"
+            author = "YARA Operator"
+            severity = "high"
+        
+        strings:
+            $cmd1 = "cmd.exe /c" nocase
+            $cmd2 = "powershell -enc" nocase
+            $cmd3 = "bash -c" nocase
+            $web1 = "wget " nocase
+            $web2 = "curl " nocase
+            $mal1 = "malware" nocase
+            $mal2 = "ransomware" nocase
+            $mal3 = "trojan" nocase
+        
+        condition:
+            any of them
+    }
+---
+apiVersion: yara.security.io/v1alpha1
+kind: YaraRule
+metadata:
+  name: detect-pe-file
+  labels:
+    category: file-type
+    severity: medium
+spec:
+  name: detect_pe_file
+  description: Detects Windows PE executable files
+  tags:
+    - windows
+    - executable
+    - pe
+  enabled: true
+  content: |
+    rule detect_pe_file {
+        meta:
+            description = "Detects Windows PE files"
+            author = "YARA Operator"
+        
+        strings:
+            $mz = { 4D 5A }
+        
+        condition:
+            $mz at 0
+    }
+---
+apiVersion: yara.security.io/v1alpha1
+kind: YaraRule
+metadata:
+  name: detect-base64-encoded
+  labels:
+    category: encoding
+    severity: low
+spec:
+  name: detect_base64_encoded
+  description: Detects base64 encoded suspicious commands
+  tags:
+    - encoding
+    - obfuscation
+  enabled: true
+  content: |
+    rule detect_base64_encoded {
+        meta:
+            description = "Detects base64 encoded suspicious patterns"
+            author = "YARA Operator"
+        
+        strings:
+            // base64 encoded "cmd.exe"
+            $b64_cmd = "Y21kLmV4ZQ=="
+            // base64 encoded "powershell"
+            $b64_ps = "cG93ZXJzaGVsbA=="
+            // base64 encoded "/bin/bash"
+            $b64_bash = "L2Jpbi9iYXNo"
+        
+        condition:
+            any of them
+    }
+
