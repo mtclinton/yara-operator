@@ -1,6 +1,7 @@
 package yara
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -142,8 +143,16 @@ func parseRule(content string) (ParsedRule, error) {
 	return rule, nil
 }
 
+// StringDef represents a parsed string definition with modifiers
+type StringDef struct {
+	Pattern  []byte
+	NoCase   bool
+	IsRegex  bool
+	RegexStr string
+}
+
 // parseStrings extracts string definitions from YARA rule
-func parseStrings(section string, strings map[string][]byte) {
+func parseStrings(section string, strDefs map[string][]byte) {
 	lines := splitLines(section)
 	for _, line := range lines {
 		line = trimSpace(line)
@@ -164,80 +173,217 @@ func parseStrings(section string, strings map[string][]byte) {
 		name := trimSpace(line[:eqIdx])
 		value := trimSpace(line[eqIdx+1:])
 
-		// Handle quoted strings
-		if hasPrefix(value, "\"") && hasSuffix(value, "\"") {
-			strings[name] = []byte(value[1 : len(value)-1])
+		// Check for modifiers (nocase, wide, ascii, etc.)
+		nocase := containsString(strings.ToLower(value), " nocase")
+
+		// Handle quoted strings (with possible modifiers)
+		if hasPrefix(value, "\"") {
+			// Find closing quote
+			closeQuote := -1
+			for i := 1; i < len(value); i++ {
+				if value[i] == '"' && (i == 1 || value[i-1] != '\\') {
+					closeQuote = i
+					break
+				}
+			}
+			if closeQuote > 0 {
+				strValue := value[1:closeQuote]
+				// Handle escape sequences
+				strValue = strings.ReplaceAll(strValue, "\\n", "\n")
+				strValue = strings.ReplaceAll(strValue, "\\t", "\t")
+				strValue = strings.ReplaceAll(strValue, "\\r", "\r")
+				strValue = strings.ReplaceAll(strValue, "\\\"", "\"")
+				strValue = strings.ReplaceAll(strValue, "\\\\", "\\")
+				if nocase {
+					// Store both upper and lower versions for nocase matching
+					strDefs[name] = []byte(strings.ToLower(strValue))
+					strDefs[name+"_upper"] = []byte(strings.ToUpper(strValue))
+				} else {
+					strDefs[name] = []byte(strValue)
+				}
+			}
+		}
+		// Handle regex patterns /pattern/
+		if hasPrefix(value, "/") {
+			closeSlash := strings.LastIndex(value, "/")
+			if closeSlash > 0 {
+				regexStr := value[1:closeSlash]
+				// For simple regex, extract literal parts
+				// This is a simplified approach - extract key literals from regex
+				literals := extractLiteralsFromRegex(regexStr)
+				for i, lit := range literals {
+					if lit != "" {
+						suffix := ""
+						if i > 0 {
+							suffix = fmt.Sprintf("_%d", i)
+						}
+						strDefs[name+suffix] = []byte(lit)
+					}
+				}
+			}
 		}
 		// Handle hex strings
-		if hasPrefix(value, "{") && hasSuffix(value, "}") {
-			hexStr := replaceAll(value[1:len(value)-1], " ", "")
-			if decoded, err := hex.DecodeString(hexStr); err == nil {
-				strings[name] = decoded
+		if hasPrefix(value, "{") {
+			closeIdx := indexOf(value, "}")
+			if closeIdx > 0 {
+				hexStr := replaceAll(value[1:closeIdx], " ", "")
+				if decoded, err := hex.DecodeString(hexStr); err == nil {
+					strDefs[name] = decoded
+				}
 			}
 		}
 	}
 }
 
+// extractLiteralsFromRegex extracts literal strings from a regex pattern
+func extractLiteralsFromRegex(pattern string) []string {
+	var literals []string
+	var current strings.Builder
+
+	// Simple extraction - get runs of literal characters
+	inBracket := false
+	escape := false
+
+	for i := 0; i < len(pattern); i++ {
+		c := pattern[i]
+
+		if escape {
+			// Escaped character
+			if c == 's' || c == 'd' || c == 'w' || c == 'S' || c == 'D' || c == 'W' {
+				// Character class - flush current literal
+				if current.Len() > 0 {
+					literals = append(literals, current.String())
+					current.Reset()
+				}
+			} else {
+				current.WriteByte(c)
+			}
+			escape = false
+			continue
+		}
+
+		switch c {
+		case '\\':
+			escape = true
+		case '[':
+			inBracket = true
+			if current.Len() > 0 {
+				literals = append(literals, current.String())
+				current.Reset()
+			}
+		case ']':
+			inBracket = false
+		case '(', ')', '*', '+', '?', '{', '}', '|', '^', '$', '.':
+			if !inBracket {
+				if current.Len() > 0 {
+					literals = append(literals, current.String())
+					current.Reset()
+				}
+			}
+		default:
+			if !inBracket {
+				current.WriteByte(c)
+			}
+		}
+	}
+
+	if current.Len() > 0 {
+		literals = append(literals, current.String())
+	}
+
+	// Filter out very short literals
+	var filtered []string
+	for _, lit := range literals {
+		if len(lit) >= 3 {
+			filtered = append(filtered, lit)
+		}
+	}
+
+	return filtered
+}
+
 // executeRule executes a parsed YARA rule against data
 func executeRule(rule ParsedRule, data []byte) []yarav1alpha1.ScanMatch {
 	var matches []yarav1alpha1.ScanMatch
+	var allMatchStrings []yarav1alpha1.MatchString
+	matchedNames := make(map[string]bool)
 
-	// Simple pattern matching for defined strings
+	// Convert data to lowercase for case-insensitive matching
+	dataLower := bytes.ToLower(data)
+
+	// Try matching each string definition
 	for name, pattern := range rule.Strings {
-		offsets := findAllOccurrences(data, pattern)
-		if len(offsets) > 0 {
-			var matchStrings []yarav1alpha1.MatchString
+		// Skip _upper variants - they're just for reference
+		if strings.HasSuffix(name, "_upper") {
+			continue
+		}
+
+		// Check for case-insensitive pattern (has _upper sibling)
+		isNoCase := false
+		if _, hasUpper := rule.Strings[name+"_upper"]; hasUpper {
+			isNoCase = true
+		}
+
+		var offsets []int
+		if isNoCase {
+			// Case-insensitive: search lowercase pattern in lowercase data
+			offsets = findAllOccurrences(dataLower, bytes.ToLower(pattern))
+		} else {
+			// Case-sensitive: search pattern in original data
+			offsets = findAllOccurrences(data, pattern)
+		}
+
+		if len(offsets) > 0 && !matchedNames[name] {
+			matchedNames[name] = true
 			for _, offset := range offsets {
-				matchData := pattern
+				// Get actual matched data from original
+				matchLen := len(pattern)
+				if offset+matchLen > len(data) {
+					matchLen = len(data) - offset
+				}
+				matchData := data[offset : offset+matchLen]
 				if len(matchData) > 64 {
 					matchData = matchData[:64]
 				}
-				matchStrings = append(matchStrings, yarav1alpha1.MatchString{
+				allMatchStrings = append(allMatchStrings, yarav1alpha1.MatchString{
 					Name:   name,
 					Offset: int64(offset),
 					Length: len(pattern),
 					Data:   hex.EncodeToString(matchData),
 				})
+				break // One match per string is enough
 			}
-
-			matches = append(matches, yarav1alpha1.ScanMatch{
-				Rule:    rule.Name,
-				Tags:    rule.Tags,
-				Strings: matchStrings,
-				Meta:    rule.Meta,
-			})
-			break // One match per rule is enough
 		}
 	}
 
-	// Handle "any of them" condition
-	if containsString(rule.Condition, "any of them") && len(rule.Strings) > 0 {
-		for name, pattern := range rule.Strings {
-			offsets := findAllOccurrences(data, pattern)
-			if len(offsets) > 0 {
-				var matchStrings []yarav1alpha1.MatchString
-				for _, offset := range offsets {
-					matchData := pattern
-					if len(matchData) > 64 {
-						matchData = matchData[:64]
-					}
-					matchStrings = append(matchStrings, yarav1alpha1.MatchString{
-						Name:   name,
-						Offset: int64(offset),
-						Length: len(pattern),
-						Data:   hex.EncodeToString(matchData),
-					})
-				}
+	// Evaluate condition
+	conditionMet := false
 
-				matches = append(matches, yarav1alpha1.ScanMatch{
-					Rule:    rule.Name,
-					Tags:    rule.Tags,
-					Strings: matchStrings,
-					Meta:    rule.Meta,
-				})
-				break
+	if containsString(rule.Condition, "any of them") {
+		// "any of them" - true if any string matched
+		conditionMet = len(allMatchStrings) > 0
+	} else if containsString(rule.Condition, "all of them") {
+		// "all of them" - true only if all defined strings matched
+		// Count unique string definitions (excluding _upper variants)
+		definedCount := 0
+		for name := range rule.Strings {
+			if !strings.HasSuffix(name, "_upper") {
+				definedCount++
 			}
 		}
+		conditionMet = len(matchedNames) == definedCount && definedCount > 0
+	} else {
+		// Default: any match counts
+		conditionMet = len(allMatchStrings) > 0
+	}
+
+	if conditionMet && len(allMatchStrings) > 0 {
+		matches = append(matches, yarav1alpha1.ScanMatch{
+			Rule:    rule.Name,
+			Tags:    rule.Tags,
+			Strings: allMatchStrings,
+			Meta:    rule.Meta,
+		})
 	}
 
 	return matches
