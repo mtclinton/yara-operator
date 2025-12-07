@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,8 +50,8 @@ func (r *YaraRuleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		rule.Status.Message = "Rule is valid"
 	}
 
-	now := ctrl.Now()
-	rule.Status.LastValidated = &now.Time
+	now := metav1.Now()
+	rule.Status.LastValidated = &now
 
 	// Update status
 	if err := r.Status().Update(ctx, &rule); err != nil {
@@ -67,4 +68,3 @@ func (r *YaraRuleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&yarav1alpha1.YaraRule{}).
 		Complete(r)
 }
-

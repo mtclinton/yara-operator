@@ -327,4 +327,3 @@ const (
 	PhaseValid     = "Valid"
 	PhaseInvalid   = "Invalid"
 )
-

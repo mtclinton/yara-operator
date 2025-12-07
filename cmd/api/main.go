@@ -54,14 +54,14 @@ type ScanRequest struct {
 }
 
 type ScanResponse struct {
-	ID                 string                        `json:"id"`
-	Status             string                        `json:"status"`
-	StartTime          *time.Time                    `json:"startTime,omitempty"`
-	EndTime            *time.Time                    `json:"endTime,omitempty"`
-	MatchCount         int                           `json:"matchCount"`
-	Matches            []yarav1alpha1.ScanMatch      `json:"matches,omitempty"`
-	Message            string                        `json:"message,omitempty"`
-	ScannedBytes       int64                         `json:"scannedBytes,omitempty"`
+	ID           string                   `json:"id"`
+	Status       string                   `json:"status"`
+	StartTime    *time.Time               `json:"startTime,omitempty"`
+	EndTime      *time.Time               `json:"endTime,omitempty"`
+	MatchCount   int                      `json:"matchCount"`
+	Matches      []yarav1alpha1.ScanMatch `json:"matches,omitempty"`
+	Message      string                   `json:"message,omitempty"`
+	ScannedBytes int64                    `json:"scannedBytes,omitempty"`
 	// Image scan specific fields
 	ImageResult        *yarav1alpha1.ImageScanResult `json:"imageResult,omitempty"`
 	VulnerabilityCount int                           `json:"vulnerabilityCount,omitempty"`
@@ -436,4 +436,3 @@ func respondError(w http.ResponseWriter, status int, error, message string) {
 		Message: message,
 	})
 }
-

@@ -21,4 +21,3 @@ func init() {
 	SchemeBuilder.Register(&YaraRule{}, &YaraRuleList{})
 	SchemeBuilder.Register(&YaraScan{}, &YaraScanList{})
 }
-

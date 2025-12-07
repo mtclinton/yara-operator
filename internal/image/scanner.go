@@ -706,4 +706,3 @@ func HashString(s string) string {
 	h.Write([]byte(s))
 	return hex.EncodeToString(h.Sum(nil))
 }
-

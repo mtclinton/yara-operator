@@ -7,10 +7,10 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -58,8 +58,8 @@ func (r *YaraScanReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	// Update status to Running
 	if scan.Status.Phase != yarav1alpha1.PhaseRunning {
 		scan.Status.Phase = yarav1alpha1.PhaseRunning
-		now := ctrl.Now()
-		scan.Status.StartTime = &now.Time
+		now := metav1.Now()
+		scan.Status.StartTime = &now
 		if err := r.Status().Update(ctx, &scan); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -94,8 +94,8 @@ func (r *YaraScanReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// Update status with results
 	scan.Status.Phase = yarav1alpha1.PhaseCompleted
-	now := ctrl.Now()
-	scan.Status.CompletionTime = &now.Time
+	now := metav1.Now()
+	scan.Status.CompletionTime = &now
 	scan.Status.MatchCount = len(matches)
 	scan.Status.Matches = matches
 	scan.Status.ScannedBytes = int64(len(data))
@@ -256,8 +256,8 @@ func (r *YaraScanReconciler) getTargetData(ctx context.Context, scan *yarav1alph
 // failScan updates the scan status to failed
 func (r *YaraScanReconciler) failScan(ctx context.Context, scan *yarav1alpha1.YaraScan, message string) (ctrl.Result, error) {
 	scan.Status.Phase = yarav1alpha1.PhaseFailed
-	now := ctrl.Now()
-	scan.Status.CompletionTime = &now.Time
+	now := metav1.Now()
+	scan.Status.CompletionTime = &now
 	scan.Status.Message = message
 
 	if err := r.Status().Update(ctx, scan); err != nil {
@@ -296,8 +296,8 @@ func (r *YaraScanReconciler) handleImageScan(ctx context.Context, scan *yarav1al
 
 	// Update status with results
 	scan.Status.Phase = yarav1alpha1.PhaseCompleted
-	now := ctrl.Now()
-	scan.Status.CompletionTime = &now.Time
+	now := metav1.Now()
+	scan.Status.CompletionTime = &now
 	scan.Status.MatchCount = matchCount
 	scan.Status.Matches = allMatches
 	scan.Status.ScannedBytes = imageResult.Size
@@ -343,4 +343,3 @@ func (r *YaraScanReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&yarav1alpha1.YaraScan{}).
 		Complete(r)
 }
-

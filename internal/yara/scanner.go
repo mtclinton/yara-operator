@@ -294,4 +294,3 @@ func replaceAll(s, old, new string) string {
 func containsString(s, substr string) bool {
 	return strings.Contains(s, substr)
 }
-
