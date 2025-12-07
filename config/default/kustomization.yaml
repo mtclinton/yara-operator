@@ -13,3 +13,4 @@ commonLabels:
   app.kubernetes.io/name: yara-operator
   app.kubernetes.io/version: v1.0.0
 
+

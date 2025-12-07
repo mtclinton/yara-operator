@@ -158,3 +158,4 @@ spec:
     app.kubernetes.io/name: yara-operator
     app.kubernetes.io/component: api
 
+

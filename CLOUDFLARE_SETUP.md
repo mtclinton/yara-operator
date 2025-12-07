@@ -334,3 +334,4 @@ For most use cases, this setup is completely free!
 6. ⬜ Update frontend with API URL
 7. ⬜ Add monitoring and alerts
 
+

@@ -64,7 +64,7 @@ spec:
                         - data
                         - configmap
                         - secret
-                        - container
+                        - image
                     value:
                       type: string
                       description: Value is the target value
