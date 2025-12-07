@@ -320,6 +320,10 @@ curl -X POST https://yara-api.example.com/api/v1/scans \
 
 See [CLOUDFLARE_SETUP.md](CLOUDFLARE_SETUP.md) for detailed instructions.
 
+## Running Locally
+
+For a complete guide on running the operator locally for development, see [docs/runLocally.md](docs/runLocally.md).
+
 ## Development
 
 ### Build
